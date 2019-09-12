@@ -7,9 +7,13 @@ exports.logout=function(){
 }
 
 exports.register=function (req,res){
-  let user= new User()
-  user.homePlanet
-  res.send("THanks for trying to register")  
+  let user= new User(req.body)
+  user.register()
+  if(user.errors.length){
+    res.send(user.errors)
+  } else{
+    res.send("Congrats no errors")
+  }
 }
 exports.home=function(req,res){
   res.render('home-guest')
