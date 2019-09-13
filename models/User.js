@@ -32,6 +32,18 @@ User.prototype.validate=function(){
   }
   
 }
+User.prototype.login = function(callback){
+  this.cleanUp()
+  usersCollection.findOne({username:this.data.username},(err,attemptedUser)=>{
+    if(attemptedUser && attemptedUser.password==this.data.password){
+     callback("congrats")
+      
+    }else{
+     callback("invalid username/password")
+      
+    }
+  })
+}
 User.prototype.cleanUp=function(){
   if(typeof(this.data.username) != "string"){
     this.data.username=""
