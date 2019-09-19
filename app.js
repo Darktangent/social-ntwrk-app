@@ -1,9 +1,12 @@
 const express=require("express")
 const session=require("express-session")
-const router=require("./router")
+const flash=require("connect-flash")
+const MongoStore=require("connect-mongo")(session)
+
 const app=express()
 let sessionOptions=session({
   secret:"Javascript is so cool",
+  store:new MongoStore({client:require('./db')}),
   resave:false,
   saveUninitialized:false,
   cookie:{
@@ -11,6 +14,19 @@ let sessionOptions=session({
   }
 })
 app.use(sessionOptions)
+app.use(flash())
+app.use(function(req,res,next){
+  // make userid available
+  if(req.session.user){
+    req.visitorId=req.session.user._id
+  }else{
+    req.visitorId=0
+  }
+  // make user session available from within view templates
+  res.locals.user=req.session.user
+  next()
+})
+const router=require("./router")
 //html form submit and get the data from req. body
 app.use(express.urlencoded({extended: false}))
 app.use(express.json())

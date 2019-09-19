@@ -1,32 +1,87 @@
 const User=require("../models/User")
+const Post=require("../models/Post")
 exports.login=function(req,res){
   let user=new User(req.body)
   user.login().then((result)=>{
-    req.session.user={username:user.data.username}
+    req.session.user={username:user.data.username, avatar:user.avatar, _id:user.data._id}
     console.log(user);
-    
-  res.send(result)
+    req.session.save(function(){
+      res.redirect("/")
+    })
+  // res.send(result)
   }).catch(err=>{
-    res.send(err)
+    // res.send(err)
+    req.flash('errors',err)
+    req.session.save(function(){
+      res.redirect("/")
+    })
   })
 }
-exports.logout=function(){
-  
+exports.logout=function(req,res){
+ req.session.destroy(function(){
+  res.redirect("/")
+ })
+ 
 }
 
 exports.register=function (req,res){
   let user= new User(req.body)
-  user.register()
-  if(user.errors.length){
-    res.send(user.errors)
-  } else{
-    res.send("Congrats no errors")
+  user.register().then(()=>{
+    req.session.user={username:user.data.username,avatar:user.avatar,_id:user.data._id}
+    req.session.save(function(){
+      res.redirect('/')
+    })
+  }).catch((regErrors)=>{
+  regErrors.forEach(error=>{
+      req.flash('regErrors',error)
+    })
+    req.session.save(function(){
+      res.redirect('/')
+    })
+  })
+  
+}
+exports.mustBeLoggedIn=function(req,res,next){
+  if(req.session.user){
+    next()
   }
+else{
+  req.flash("errors","You must be logged in to perform that function")
+  req.session.save(()=>{
+    res.redirect("/")
+  })
+}
 }
 exports.home=function(req,res){
   if(req.session.user){
-    res.send("Welcome to the app")
+    res.render('home-dashboard')
+    // {
+    //   username:req.session.user.username, avatar:req.session.user.avatar
+    // }
   }else{
-    res.render('home-guest')
+    res.render('home-guest',{errors:req.flash('errors'),regErrors:req.flash('regErrors')})
   }
+}
+exports.ifUserExists = (req,res,next)=>{
+
+  User.findByUsername(req.params.username).then((userDocument)=>{
+    req.profileUser = userDocument
+    next()
+  }).catch(()=>{
+    res.render("404")
+  })
+  
+}
+exports.profilePostsScreen=(req,res)=>{
+  // ask post model for posts by certain id
+  Post.findByAuthorId(req.profileUser._id).then(function(posts){
+    res.render("profile",{
+      posts:posts,
+      profileUsername:req.profileUser.username,
+      profileAvatar:req.profileUser.avatar
+    })
+  }).catch(function(){
+    res.render("404")
+  })
+ 
 }
